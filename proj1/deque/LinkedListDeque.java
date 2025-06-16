@@ -4,9 +4,9 @@ public class LinkedListDeque<T> {
 
     public class Node {
 
-        public Node prev;
-        public T item;
-        public Node next;
+        private Node prev;
+        private T item;
+        private Node next;
 
         public Node(Node prev, T item, Node next) {
             this.prev = prev;
@@ -57,7 +57,7 @@ public class LinkedListDeque<T> {
     }
 
     public T removeLast() {
-        if(this.isEmpty()) {
+        if (this.isEmpty()) {
             return null;
         }
         T item = this.sentinel.prev.item;
@@ -68,11 +68,11 @@ public class LinkedListDeque<T> {
     }
 
     public T get(int index) {
-        if(index < 0 || index >= this.size) {
+        if (index < 0 || index >= this.size) {
             return null;
         }
         Node current = this.sentinel.next;
-        for(int i = 0; i < index; i++) {
+        for (int i = 0; i < index; i++) {
             current = current.next;
         }
         return current.item;
@@ -80,7 +80,7 @@ public class LinkedListDeque<T> {
 
     public void printDeque() {
         Node current = this.sentinel.next;
-        for(int i = 0; i < this.size; i++) {
+        for (int i = 0; i < this.size; i++) {
             System.out.print(current.item + " ");
         }
     }
