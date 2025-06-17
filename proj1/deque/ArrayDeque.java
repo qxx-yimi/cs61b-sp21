@@ -1,7 +1,5 @@
 package deque;
 
-import java.util.NoSuchElementException;
-
 public class ArrayDeque<T> {
 
     private T[] items;
