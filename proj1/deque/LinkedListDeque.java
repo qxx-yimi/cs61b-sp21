@@ -1,6 +1,9 @@
 package deque;
 
-public class LinkedListDeque<T> {
+import java.util.Iterator;
+
+
+public class LinkedListDeque<T> implements Iterable<T> {
 
     public class Node {
 
@@ -78,11 +81,72 @@ public class LinkedListDeque<T> {
         return current.item;
     }
 
+    public T getRecursive(int index) {
+        if (index < 0 || index >= size) {
+            return null;
+        }
+        return getRecursive(index, sentinel.next);
+    }
+
+    private T getRecursive(int index, Node current) {
+        if (index == 0) {
+            return current.item;
+        }
+        return getRecursive(index - 1, current.next);
+    }
+
     public void printDeque() {
         Node current = sentinel.next;
         for (int i = 0; i < size; i++) {
             System.out.print(current.item + " ");
             current = current.next;
         }
+    }
+
+    public Iterator<T> iterator() {
+        return new LinkedListDequeIterator();
+    }
+
+    private class LinkedListDequeIterator implements Iterator<T> {
+
+        private int currentIndex;
+        private Node currentNode;
+
+        public LinkedListDequeIterator() {
+            currentIndex = 0;
+            currentNode = sentinel.next;
+        }
+
+        public boolean hasNext() {
+            return currentIndex < size;
+        }
+
+        public T next() {
+            T item = currentNode.item;
+            currentIndex++;
+            currentNode = currentNode.next;
+            return item;
+        }
+    }
+
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof LinkedListDeque)) {
+            return false;
+        }
+        LinkedListDeque<T> o = (LinkedListDeque<T>) other;
+        if (size != o.size) {
+            return false;
+        }
+        Node thisNode = sentinel.next;
+        Node otherNode = o.sentinel.next;
+        for (int i = 0; i < size; i++) {
+            if (!(thisNode.item.equals(otherNode.item))) {
+                return false;
+            }
+        }
+        return true;
     }
 }
