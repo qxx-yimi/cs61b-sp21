@@ -1,5 +1,6 @@
 package deque;
 
+import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -133,6 +134,81 @@ public class ArrayDequeTest {
             assertEquals("Should have the same value", i, (double) lld1.removeLast(), 0.0);
         }
 
+    }
 
+    @Test
+    /* 测试equals */
+    public void equalsTest() {
+        ArrayDeque<Integer> lld1 = new ArrayDeque<>();
+        ArrayDeque<Integer> lld2 = new  ArrayDeque<>();
+        for (int i = 0; i < 100; i++) {
+            lld1.addLast(i);
+            lld2.addLast(i);
+        }
+        assertEquals(lld1, lld2);
+        lld2.addLast(100);
+        assertNotEquals(lld1, lld2);
+    }
+
+    @Test
+    /* 测试增强for */
+    public void iteratorTest() {
+        ArrayDeque<Integer> lld1 = new ArrayDeque<>();
+        for (int i = 0; i < 100; i++) {
+            lld1.addLast(i);
+        }
+        String elements = "";
+        for (Integer i : lld1) {
+            elements += i + " ";
+        }
+    }
+
+    @Test
+    /* 随机测试 */
+    public void randomizedTest() {
+        ArrayDeque<Integer> lld1 = new ArrayDeque<>();
+        LinkedListDeque<Integer> lld2 = new LinkedListDeque<>();
+
+        int N = 100000;
+        for (int i = 0; i < N; i += 1) {
+            int operationNumber = StdRandom.uniform(0, 8);
+            if (operationNumber == 0) {
+                // addFirst
+                int randVal = StdRandom.uniform(0, 100);
+                lld1.addFirst(randVal);
+                lld2.addFirst(randVal);
+            } else if (operationNumber == 1) {
+                // addLast
+                int randVal = StdRandom.uniform(0, 100);
+                lld1.addLast(randVal);
+                lld2.addLast(randVal);
+            } else if (operationNumber == 2) {
+                // isEmpty
+                assertEquals(lld1.isEmpty(), lld2.isEmpty());
+            } else if (operationNumber == 3) {
+                // size
+                assertEquals(lld1.size(), lld2.size());
+            }else if (operationNumber == 4) {
+                // removeFirst
+                Integer item1 = lld1.removeFirst();
+                Integer item2 = lld2.removeFirst();
+                assertEquals(item1, item2);
+            }else if (operationNumber == 5) {
+                // removeLast
+                Integer item1 = lld1.removeLast();
+                Integer item2 = lld2.removeLast();
+                assertEquals(item1, item2);
+            }else if (operationNumber == 6) {
+                // get
+                int randIndex = StdRandom.uniform(0, 100);
+                Integer item1 = lld1.get(randIndex);
+                Integer item2 = lld2.get(randIndex);
+                assertEquals(item1, item2);
+            } else {
+                // equals
+                assertEquals(lld1, lld2);
+                assertEquals(lld2, lld1);
+            }
+        }
     }
 }
