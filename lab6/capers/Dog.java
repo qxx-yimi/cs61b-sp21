@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 
-import static capers.Utils.*;
 
 /**
  * Represents a dog that can be serialized.

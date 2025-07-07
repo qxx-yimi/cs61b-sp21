@@ -3,7 +3,6 @@ package capers;
 import java.io.File;
 import java.io.IOException;
 
-import static capers.Utils.*;
 
 /**
  * A repository for Capers
@@ -50,7 +49,7 @@ public class CapersRepository {
      *
      * @param text String of the text to be appended to the story
      */
-    public static void writeStory(String text) throws IOException {
+    public static void writeStory(String text) {
         File story = Utils.join(CAPERS_FOLDER, "story.txt");
         if (!story.exists()) {
             try {
