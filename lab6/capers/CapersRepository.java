@@ -53,7 +53,11 @@ public class CapersRepository {
     public static void writeStory(String text) throws IOException {
         File story = Utils.join(CAPERS_FOLDER, "story.txt");
         if (!story.exists()) {
-            story.createNewFile();
+            try {
+                story.createNewFile();
+            } catch (IOException e) {
+                throw Utils.error("Unable to create file: " + story.getAbsolutePath());
+            }
         }
         String current_text = Utils.readContentsAsString(story) + text + "\n";
         Utils.writeContents(story, current_text);
@@ -65,7 +69,7 @@ public class CapersRepository {
      * three non-command arguments of args (name, breed, age).
      * Also prints out the dog's information using toString().
      */
-    public static void makeDog(String name, String breed, int age) throws IOException {
+    public static void makeDog(String name, String breed, int age) {
         Dog dog = new Dog(name, breed, age);
         dog.saveDog();
         System.out.println(dog);
@@ -78,7 +82,7 @@ public class CapersRepository {
      *
      * @param name String name of the Dog whose birthday we're celebrating.
      */
-    public static void celebrateBirthday(String name) throws IOException {
+    public static void celebrateBirthday(String name) {
         Dog dog = Dog.fromFile(name);
         dog.haveBirthday();
         dog.saveDog();

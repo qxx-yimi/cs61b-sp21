@@ -66,10 +66,14 @@ public class Dog implements Serializable {
     /**
      * Saves a dog to a file for future use.
      */
-    public void saveDog() throws IOException {
+    public void saveDog() {
         File dogFile = Utils.join(DOG_FOLDER, name);
         if (!dogFile.exists()) {
-            dogFile.createNewFile();
+            try {
+                dogFile.createNewFile();
+            } catch (IOException e) {
+                throw Utils.error("Unable to create file: " + dogFile.getAbsolutePath());
+            }
         }
         Utils.writeObject(dogFile, this);
     }
