@@ -1,26 +1,65 @@
 package gitlet;
 
-// TODO: any imports you need here
+import java.io.Serializable;
+import java.util.Date;
+import java.util.Formatter;
+import java.util.HashMap;
+import java.util.Locale;
 
-import java.util.Date; // TODO: You'll likely use this in this class
-
-/** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+/**
+ * Represents a gitlet commit object.
  *
- *  @author TODO
+ * @author onemeter
  */
-public class Commit {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
-     */
+public class Commit implements Serializable {
 
-    /** The message of this Commit. */
+    /** The commit message. */
     private String message;
 
-    /* TODO: fill in the rest of this class. */
+    /** The commit timestamp. */
+    private String timestamp;
+
+    /** The parent commit SHA-1 hash. */
+    private String parent;
+
+    /** The second parent commit SHA-1 hash (for merges). */
+    private String secondParent;
+
+    /** File snapshots in this commit: filename -> blob SHA-1 hash. */
+    private HashMap<String, String> fileSnapshots;
+
+    public Commit(String message, Date timestamp, String parent, String secondParent, HashMap<String, String> fileSnapshots) {
+        this.message = message;
+        Formatter fmt = new Formatter(Locale.US);
+        fmt.format("%ta %tb %td %tT %tY %Tz", timestamp, timestamp, timestamp, timestamp, timestamp, timestamp);
+        this.timestamp = fmt.toString();
+        fmt.close();
+        this.parent = parent;
+        this.secondParent = secondParent;
+        this.fileSnapshots = fileSnapshots;
+    }
+
+    public boolean hasFile(String fileName, String hashValue) {
+        return fileSnapshots.containsKey(fileName) && fileSnapshots.get(fileName).equals(hashValue);
+    }
+
+    public HashMap<String, String> getFileSnapshots() {
+        return fileSnapshots;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public String getParent() {
+        return parent;
+    }
+
+    public String getSecondParent() {
+        return secondParent;
+    }
 }

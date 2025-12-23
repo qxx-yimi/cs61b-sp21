@@ -236,4 +236,16 @@ class Utils {
         System.out.printf(msg, args);
         System.out.println();
     }
+
+    /**
+     * Checks the number of arguments versus the expected number,
+     *
+     * @param args Argument array from command line
+     * @param n    Number of expected arguments
+     */
+    static void validateNumArgs(String[] args, int n) {
+        if (args.length != n) {
+            throw error("Incorrect operands.");
+        }
+    }
 }
