@@ -46,6 +46,26 @@ public class Main {
                     Utils.validateNumArgs(args, 1);
                     Repository.log();
                     break;
+                case "rm":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.rm(args[1]);
+                    break;
+                case "global-log":
+                    Utils.validateNumArgs(args, 1);
+                    Repository.globalLog();
+                    break;
+                case "find":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.find(args[1]);
+                    break;
+                case "status":
+                    Utils.validateNumArgs(args, 1);
+                    Repository.status();
+                    break;
+                case "branch":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.branch(args[1]);
+                    break;
                 default:
                     throw Utils.error("No command with that name exists.");
             }

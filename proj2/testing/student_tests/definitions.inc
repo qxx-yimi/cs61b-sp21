@@ -5,6 +5,8 @@ D COMMIT_HEAD "commit ([a-f0-9]+)[ \t]*\n(?:Merge:\s+[0-9a-f]{7}\s+[0-9a-f]{7}[ 
 # A full log entry.  Captures the entry. Assume logs messages don't contain
 # "==="
 D COMMIT_LOG "(===[ ]*\ncommit [a-f0-9]+[ ]*\n(?:Merge:\s+[0-9a-f]{7}\s+[0-9a-f]{7}[ ]*\n)?${DATE}[ ]*\n(?:.|\n)*?(?=\Z|\n===))"
+# SHA-1 hash (40 hexadecimal characters)
+D SHA1 "[a-f0-9]{40}"
 # An arbitrary line of text (works even with ?s)
 D ARBLINE "[^\n]*(?=\n|\Z)"
 # Zero or more arbitrary full lines of text.

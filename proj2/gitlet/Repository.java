@@ -5,6 +5,7 @@ import static gitlet.Utils.*;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * Represents a gitlet repository.
@@ -94,10 +95,7 @@ public class Repository {
         }
 
         // if file is staged for removal, unstage it
-        File stagedForRemoval = join(STAGING_REMOVE_DIR, filename);
-        if (stagedForRemoval.exists()) {
-            stagedForRemoval.delete();
-        }
+        join(STAGING_REMOVE_DIR, filename).delete();
     }
 
     private static boolean isStagingEmpty() {
@@ -174,6 +172,64 @@ public class Repository {
 
     public static void checkoutBranch(String branch) {
         checkInit();
+        File branchFile = join(HEADS_DIR, branch);
+        if (!branchFile.exists()) {
+            throw error("No such branch exists.");
+        }
+        String currentBranch = readContentsAsString(HEAD_FILE);
+        if (branch.equals(currentBranch)) {
+            throw error("No need to checkout the current branch.");
+        }
+
+        // read current commit
+        String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
+        Commit currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
+
+        // read branch commit
+        String branchCommitHash = readContentsAsString(branchFile);
+        Commit branchCommit = readObject(join(COMMITS_DIR, branchCommitHash), Commit.class);
+
+        for (String fileInCWD : plainFilenamesIn(CWD)) {
+            boolean isTrackedInCurrentCommit = currentCommit.getFileSnapshots().containsKey(fileInCWD);
+            boolean isOverWrittenByBranch = branchCommit.getFileSnapshots().containsKey(fileInCWD);
+            if (!isTrackedInCurrentCommit && isOverWrittenByBranch) {
+                throw error("There is an untracked file in the way; delete it, or add and commit it first.");
+            }
+        }
+
+        // remove all files in working dirctory
+        for (String fileInCWD : plainFilenamesIn(CWD)) {
+            join(CWD, fileInCWD).delete();
+        }
+
+        // write all files from branch commit to working directory
+        for (String fileInBranchCommit : branchCommit.getFileSnapshots().keySet()) {
+            String blobHash = branchCommit.getFileSnapshots().get(fileInBranchCommit);
+            String fileContent = readContentsAsString(join(OBJECTS_DIR, blobHash));
+            writeContents(join(CWD, fileInBranchCommit), fileContent);
+        }
+
+        // clear staging area
+        for (String stagedFile : plainFilenamesIn(STAGING_ADD_DIR)) {
+            join(STAGING_ADD_DIR, stagedFile).delete();
+        }
+        for (String stagedFile : plainFilenamesIn(STAGING_REMOVE_DIR)) {
+            join(STAGING_REMOVE_DIR, stagedFile).delete();
+        }
+
+        // HEAD points to the checked out branch
+        writeContents(HEAD_FILE, branch);
+    }
+
+    private static void printCommitInfo(String commitHash, Commit commit) {
+        System.out.println("===");
+        System.out.println("commit " + commitHash);
+        if (commit.getSecondParent() != null) {
+            System.out.println("Merge: " + commit.getParent().substring(0, 7) + " " + commit.getSecondParent().substring(0, 7));
+        }
+        System.out.println("Date: " + commit.getTimestamp());
+        System.out.println(commit.getMessage());
+        System.out.println();
     }
 
     public static void log() {
@@ -183,20 +239,158 @@ public class Repository {
         String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
         Commit currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
         while (currentCommit != null) {
-            System.out.println("===");
-            System.out.println("commit " + currentCommitHash);
-            if (currentCommit.getSecondParent() != null) {
-                System.out.println("Merge: " + currentCommit.getParent().substring(0, 7) + " " + currentCommit.getSecondParent().substring(0, 7));
-            }
-            System.out.println("Date: " + currentCommit.getTimestamp());
-            System.out.println(currentCommit.getMessage());
-            System.out.println();
-
+            printCommitInfo(currentCommitHash, currentCommit);
             if (currentCommit.getParent() == null) {
                 break;
             }
             currentCommitHash = currentCommit.getParent();
             currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
         }
+    }
+
+    public static void rm(String filename) {
+        checkInit();
+        File stagedForAdditionFile = join(STAGING_ADD_DIR, filename);
+        boolean isStagedForAddition = stagedForAdditionFile.exists();
+
+        // read current commit
+        String currentBranch = readContentsAsString(HEAD_FILE);
+        String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
+        Commit currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
+        boolean isTrackedInCurrentCommit = currentCommit.getFileSnapshots().containsKey(filename);
+
+        if (!isStagedForAddition && !isTrackedInCurrentCommit) {
+            throw error("No reason to remove the file.");
+        }
+
+        if (isStagedForAddition) {
+            stagedForAdditionFile.delete();
+        }
+
+        if (isTrackedInCurrentCommit) {
+            // stage file for removal
+            writeContents(join(STAGING_REMOVE_DIR, filename), "");
+            // remove file from working directory
+            join(CWD, filename).delete();
+        }
+    }
+
+    public static void globalLog() {
+        checkInit();
+        // Iterate through all commits in COMMITS_DIR
+        for (String commitHash : plainFilenamesIn(COMMITS_DIR)) {
+            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+            printCommitInfo(commitHash, commit);
+        }
+    }
+
+    public static void find(String message) {
+        checkInit();
+        boolean found = false;
+        for (String commitHash : plainFilenamesIn(COMMITS_DIR)) {
+            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+            if (commit.getMessage().equals(message)) {
+                found = true;
+                System.out.println(commitHash);
+            }
+        }
+        if (!found) {
+            throw error("Found no commit with that message.");
+        }
+    }
+
+    public static void status() {
+        checkInit();
+        // print branches
+        String currentBranch = readContentsAsString(HEAD_FILE);
+        System.out.println("=== Branches ===");
+        for (String branch : plainFilenamesIn(HEADS_DIR)) {
+            if (branch.equals(currentBranch)) {
+                System.out.println("*" + branch);
+            } else {
+                System.out.println(branch);
+            }
+        }
+        System.out.println();
+
+        // print staged files for addition
+        System.out.println("=== Staged Files ===");
+        for (String stagedFile : plainFilenamesIn(STAGING_ADD_DIR)) {
+            System.out.println(stagedFile);
+        }
+        System.out.println();
+
+        // print staged files for removal
+        System.out.println("=== Removed Files ===");
+        for (String stagedFile : plainFilenamesIn(STAGING_REMOVE_DIR)) {
+            System.out.println(stagedFile);
+        }
+        System.out.println();
+
+        // read current commit
+        String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
+        Commit currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
+
+        // print modifications not staged for commit
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        TreeMap<String, String> modifications = new TreeMap<>();
+        // check tracked files in current commit
+        for (String trackedFile : currentCommit.getFileSnapshots().keySet()) {
+            File fileInCWD = join(CWD, trackedFile);
+            if (fileInCWD.exists()) {
+                boolean isStagedForAddition = join(STAGING_ADD_DIR, trackedFile).exists();
+                boolean unChanged = currentCommit.hasFile(trackedFile, sha1(readContentsAsString(fileInCWD)));
+                if (!isStagedForAddition && !unChanged) {
+                    modifications.put(trackedFile, "modified");
+                }
+            } else {
+                boolean isStagedForRemoval = join(STAGING_REMOVE_DIR, trackedFile).exists();
+                if (!isStagedForRemoval) {
+                    modifications.put(trackedFile, "deleted");
+                }
+            }
+        }
+
+        // check files staged for addition
+        for (String stagedFile : plainFilenamesIn(STAGING_ADD_DIR)) {
+            File fileInCWD = join(CWD, stagedFile);
+            if (fileInCWD.exists()) {
+                String fileInCWDHash = sha1(readContentsAsString(fileInCWD));
+                String stagedFileHash = readContentsAsString(join(STAGING_ADD_DIR, stagedFile));
+                if (!fileInCWDHash.equals(stagedFileHash)) {
+                    modifications.put(stagedFile, "modified");
+                }
+            } else {
+                modifications.put(stagedFile, "deleted");
+            }
+        }
+        for (String file : modifications.keySet()) {
+            System.out.println(file + " (" + modifications.get(file) + ")");
+        }
+        System.out.println();
+
+        // print untracked files
+        System.out.println("=== Untracked Files ===");
+        for (String fileInCWD : plainFilenamesIn(CWD)) {
+            boolean isTrackedInCurrentCommit = currentCommit.getFileSnapshots().containsKey(fileInCWD);
+            boolean isStagedForAddition = join(STAGING_ADD_DIR, fileInCWD).exists();
+            if (!isTrackedInCurrentCommit && !isStagedForAddition) {
+                System.out.println(fileInCWD);
+            }
+        }
+        System.out.println();
+    }
+
+    public static void branch(String branchName) {
+        checkInit();
+        File branchFile = join(HEADS_DIR, branchName);
+        if (branchFile.exists()) {
+            throw error("A branch with that name already exists.");
+        }
+        // read current commit
+        String currentBranch = readContentsAsString(HEAD_FILE);
+        String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
+        // create new branch pointing to current commit
+        writeContents(branchFile, currentCommitHash);
     }
 }
