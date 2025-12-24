@@ -29,7 +29,7 @@ public class Main {
                     break;
                 case "commit":
                     Utils.validateNumArgs(args, 2);
-                    Repository.commit(args[1]);
+                    Repository.commit(args[1], null);
                     break;
                 case "checkout":
                     if (args.length == 3 && args[1].equals("--")) {
@@ -65,6 +65,18 @@ public class Main {
                 case "branch":
                     Utils.validateNumArgs(args, 2);
                     Repository.branch(args[1]);
+                    break;
+                case "rm-branch":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.rmBranch(args[1]);
+                    break;
+                case "reset":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.reset(args[1]);
+                    break;
+                case "merge":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.merge(args[1]);
                     break;
                 default:
                     throw Utils.error("No command with that name exists.");
