@@ -476,37 +476,32 @@ public class Repository {
         HashSet<String> branchCommitAncestors = new HashSet<>();
         ArrayDeque<String> queue = new ArrayDeque<>();
         queue.offer(branchCommitHash);
-        while(!queue.isEmpty()) {
+        while (!queue.isEmpty()) {
             String commitHash = queue.poll();
-            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
-            String parentHash = commit.getParent();
-            String secondParentHash = commit.getSecondParent();
-            if (parentHash != null) {
-                branchCommitAncestors.add(parentHash);
-                queue.offer(parentHash);
-            }
-            if (secondParentHash != null) {
-                branchCommitAncestors.add(secondParentHash);
-                queue.offer(secondParentHash);
-            }
+            branchCommitAncestors.add(commitHash);
+            updateQueue(queue, commitHash);
         }
         queue.offer(currentCommitHash);
-        while(!queue.isEmpty()) {
+        while (!queue.isEmpty()) {
             String commitHash = queue.poll();
             if (branchCommitAncestors.contains(commitHash)) {
                 return commitHash;
             }
-            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
-            String parentHash = commit.getParent();
-            String secondParentHash = commit.getSecondParent();
-            if (parentHash != null) {
-                queue.offer(parentHash);
-            }
-            if (secondParentHash != null) {
-                queue.offer(secondParentHash);
-            }
+            updateQueue(queue, commitHash);
         }
         return null;
+    }
+
+    private static void updateQueue(ArrayDeque<String> queue, String commitHash) {
+        Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+        String parentHash = commit.getParent();
+        String secondParentHash = commit.getSecondParent();
+        if (parentHash != null) {
+            queue.offer(parentHash);
+        }
+        if (secondParentHash != null) {
+            queue.offer(secondParentHash);
+        }
     }
 
     private static void handleConflict(String currentBlobHash, String branchBlobHash,
