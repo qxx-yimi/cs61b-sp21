@@ -474,17 +474,37 @@ public class Repository {
 
     private static String findSplitPoint(String currentCommitHash, String branchCommitHash) {
         HashSet<String> branchCommitAncestors = new HashSet<>();
-        while (branchCommitHash != null) {
-            branchCommitAncestors.add(branchCommitHash);
-            Commit branchCommit = readObject(join(COMMITS_DIR, branchCommitHash), Commit.class);
-            branchCommitHash = branchCommit.getParent();
-        }
-        while (currentCommitHash != null) {
-            if (branchCommitAncestors.contains(currentCommitHash)) {
-                return currentCommitHash;
+        ArrayDeque<String> queue = new ArrayDeque<>();
+        queue.offer(branchCommitHash);
+        while(!queue.isEmpty()) {
+            String commitHash = queue.poll();
+            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+            String parentHash = commit.getParent();
+            String secondParentHash = commit.getSecondParent();
+            if (parentHash != null) {
+                branchCommitAncestors.add(parentHash);
+                queue.offer(parentHash);
             }
-            Commit currentCommit = readObject(join(COMMITS_DIR, currentCommitHash), Commit.class);
-            currentCommitHash = currentCommit.getParent();
+            if (secondParentHash != null) {
+                branchCommitAncestors.add(secondParentHash);
+                queue.offer(secondParentHash);
+            }
+        }
+        queue.offer(currentCommitHash);
+        while(!queue.isEmpty()) {
+            String commitHash = queue.poll();
+            if (branchCommitAncestors.contains(commitHash)) {
+                return commitHash;
+            }
+            Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+            String parentHash = commit.getParent();
+            String secondParentHash = commit.getSecondParent();
+            if (parentHash != null) {
+                queue.offer(parentHash);
+            }
+            if (secondParentHash != null) {
+                queue.offer(secondParentHash);
+            }
         }
         return null;
     }
