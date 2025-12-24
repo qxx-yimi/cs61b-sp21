@@ -28,10 +28,12 @@ public class Commit implements Serializable {
     /** File snapshots in this commit: filename -> blob SHA-1 hash. */
     private HashMap<String, String> fileSnapshots;
 
-    public Commit(String message, Date timestamp, String parent, String secondParent, HashMap<String, String> fileSnapshots) {
+    public Commit(String message, Date timestamp, String parent,
+                  String secondParent, HashMap<String, String> fileSnapshots) {
         this.message = message;
         Formatter fmt = new Formatter(Locale.US);
-        fmt.format("%ta %tb %td %tT %tY %Tz", timestamp, timestamp, timestamp, timestamp, timestamp, timestamp);
+        fmt.format("%ta %tb %td %tT %tY %Tz", timestamp, timestamp, timestamp,
+                timestamp, timestamp, timestamp);
         this.timestamp = fmt.toString();
         fmt.close();
         this.parent = parent;
