@@ -4,6 +4,8 @@ import java.io.File;
 
 import static gitlet.Utils.*;
 
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 /**
@@ -33,6 +35,16 @@ public class Repository {
      * The local branches directory.
      */
     public static final File HEADS_DIR = join(GITLET_DIR, "refs", "heads");
+
+    /**
+     * The remote repository directory.
+     */
+    public static final File REMOTES_REPO_DIR = join(GITLET_DIR, "remotes");
+
+    /**
+     * The remote branches directory.
+     */
+    public static final File REMOTES_HEADS_DIR = join(GITLET_DIR, "refs", "remotes");
 
     /**
      * The objects directory for storing blobs.
@@ -68,6 +80,8 @@ public class Repository {
 
         GITLET_DIR.mkdir();
         HEADS_DIR.mkdirs();
+        REMOTES_REPO_DIR.mkdir();
+        REMOTES_HEADS_DIR.mkdir();
         OBJECTS_DIR.mkdir();
         COMMITS_DIR.mkdir();
         STAGING_ADD_DIR.mkdirs();
@@ -472,28 +486,34 @@ public class Repository {
         writeContents(HEAD_FILE, originalBranch);
     }
 
-    private static String findSplitPoint(String currentCommitHash, String branchCommitHash) {
-        HashSet<String> branchCommitAncestors = new HashSet<>();
+    private static HashSet<String> getAllAncestors(String commitHash, File gitletDir) {
+        HashSet<String> ancestors = new HashSet<>();
         ArrayDeque<String> queue = new ArrayDeque<>();
-        queue.offer(branchCommitHash);
+        queue.offer(commitHash);
         while (!queue.isEmpty()) {
-            String commitHash = queue.poll();
-            branchCommitAncestors.add(commitHash);
-            updateQueue(queue, commitHash);
+            String currentHash = queue.poll();
+            ancestors.add(currentHash);
+            updateQueue(queue, currentHash, gitletDir);
         }
+        return ancestors;
+    }
+
+    private static String findSplitPoint(String currentCommitHash, String branchCommitHash) {
+        HashSet<String> branchCommitAncestors = getAllAncestors(branchCommitHash, GITLET_DIR);
+        ArrayDeque<String> queue = new ArrayDeque<>();
         queue.offer(currentCommitHash);
         while (!queue.isEmpty()) {
             String commitHash = queue.poll();
             if (branchCommitAncestors.contains(commitHash)) {
                 return commitHash;
             }
-            updateQueue(queue, commitHash);
+            updateQueue(queue, commitHash, GITLET_DIR);
         }
         return null;
     }
 
-    private static void updateQueue(ArrayDeque<String> queue, String commitHash) {
-        Commit commit = readObject(join(COMMITS_DIR, commitHash), Commit.class);
+    private static void updateQueue(ArrayDeque<String> queue, String commitHash, File gitletDir) {
+        Commit commit = readObject(join(gitletDir, "commits", commitHash), Commit.class);
         String parentHash = commit.getParent();
         String secondParentHash = commit.getSecondParent();
         if (parentHash != null) {
@@ -624,5 +644,92 @@ public class Repository {
         if (isConflict) {
             throw error("Encountered a merge conflict.");
         }
+    }
+
+    public static void addRemote(String remoteName, String remotePath) {
+        checkInit();
+        File remoteFile = join(REMOTES_REPO_DIR, remoteName);
+        if (remoteFile.exists()) {
+            throw error("A remote with that name already exists.");
+        }
+        writeContents(remoteFile, remotePath);
+        join(REMOTES_HEADS_DIR, remoteName).mkdir();
+    }
+
+    public static void rmRemote(String remoteName) {
+        checkInit();
+        File remoteFile = join(REMOTES_REPO_DIR, remoteName);
+        if (!remoteFile.exists()) {
+            throw error("A remote with that name does not exist.");
+        }
+        remoteFile.delete();
+        File remoteHeadsDir = join(REMOTES_HEADS_DIR, remoteName);
+        for (String remoteBranch : plainFilenamesIn(remoteHeadsDir)) {
+            join(remoteHeadsDir, remoteBranch).delete();
+        }
+        remoteHeadsDir.delete();
+    }
+
+    private static void copyAllCommits(HashSet<String> commitHashes, File from, File to) {
+        // copy commits
+        for (String commitHash : commitHashes) {
+            File fromCommitFile = join(from, "commits", commitHash);
+            File toCommitFile = join(to, "commits", commitHash);
+            Commit commit = readObject(fromCommitFile, Commit.class);
+            writeObject(toCommitFile, commit);
+            // copy blobs
+            for (String blobHash : commit.getFileSnapshots().values()) {
+                File fromBlobFile = join(from, "objects", blobHash);
+                File toBlobFile = join(to, "objects", blobHash);
+                String blobContent = readContentsAsString(fromBlobFile);
+                writeContents(toBlobFile, blobContent);
+            }
+        }
+    }
+
+    public static void push(String remoteName, String remoteBranchName) {
+        checkInit();
+        File remoteRepo = join(REMOTES_REPO_DIR, remoteName);
+        if (!remoteRepo.exists()) {
+            throw error("Remote directory not found.");
+        }
+        String currentBranch = readContentsAsString(HEAD_FILE);
+        String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
+        HashSet<String> allAncestors = getAllAncestors(currentCommitHash, GITLET_DIR);
+        File remoteBranchFile = join(remoteRepo, "ref", "heads", remoteBranchName);
+        if (remoteBranchFile.exists()) {
+            String remoteCommitHash = readContentsAsString(remoteBranchFile);
+            if (!allAncestors.contains(remoteCommitHash)) {
+                throw error("Please pull down remote changes before pushing.");
+            }
+        }
+        // copy all commits from local to remote
+        copyAllCommits(allAncestors, GITLET_DIR, remoteRepo);
+        // update remote branch to point to head of current branch
+        writeContents(remoteBranchFile, currentCommitHash);
+    }
+
+    public static void fetch(String remoteName, String remoteBranchName) {
+        checkInit();
+        File remoteRepo = join(REMOTES_REPO_DIR, remoteName);
+        if (!remoteRepo.exists()) {
+            throw error("Remote directory not found.");
+        }
+        File remoteBranchFile = join(remoteRepo, "ref", "heads", remoteBranchName);
+        if (!remoteBranchFile.exists()) {
+            throw error("That remote does not have that branch.");
+        }
+        // copy all commits from remote branch to local
+        String remoteCommitHash = readContentsAsString(remoteBranchFile);
+        copyAllCommits(getAllAncestors(remoteCommitHash, remoteRepo), remoteRepo, GITLET_DIR);
+
+        // create a new branch point to head of fetched remote branch
+        writeContents(join(REMOTES_HEADS_DIR, remoteName, remoteBranchName), remoteCommitHash);
+    }
+
+    public static void pull(String remoteName, String remoteBranchName) {
+        checkInit();
+        fetch(remoteName, remoteBranchName);
+        merge(remoteName + File.separator + remoteBranchName);
     }
 }

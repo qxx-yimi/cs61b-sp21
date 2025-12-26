@@ -78,6 +78,26 @@ public class Main {
                     Utils.validateNumArgs(args, 2);
                     Repository.merge(args[1]);
                     break;
+                case "add-remote":
+                    Utils.validateNumArgs(args, 3);
+                    Repository.addRemote(args[1], args[2]);
+                    break;
+                case "rm-remote":
+                    Utils.validateNumArgs(args, 2);
+                    Repository.rmRemote(args[1]);
+                    break;
+                case "push":
+                    Utils.validateNumArgs(args, 3);
+                    Repository.push(args[1], args[2]);
+                    break;
+                case "fetch":
+                    Utils.validateNumArgs(args, 3);
+                    Repository.fetch(args[1], args[2]);
+                    break;
+                case "pull":
+                    Utils.validateNumArgs(args, 3);
+                    Repository.pull(args[1], args[2]);
+                    break;
                 default:
                     throw Utils.error("No command with that name exists.");
             }
