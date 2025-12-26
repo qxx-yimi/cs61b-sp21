@@ -4,8 +4,6 @@ import java.io.File;
 
 import static gitlet.Utils.*;
 
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 /**
@@ -687,12 +685,21 @@ public class Repository {
         }
     }
 
-    public static void push(String remoteName, String remoteBranchName) {
-        checkInit();
+    private static File getRemoteDir(String remoteName) {
         File remoteRepo = join(REMOTES_REPO_DIR, remoteName);
+        if (!remoteRepo.exists()) {
+            throw error("A remote with that name does not exist.");
+        }
+        remoteRepo = join(readContentsAsString(remoteRepo));
         if (!remoteRepo.exists()) {
             throw error("Remote directory not found.");
         }
+        return remoteRepo;
+    }
+
+    public static void push(String remoteName, String remoteBranchName) {
+        checkInit();
+        File remoteRepo = getRemoteDir(remoteName);
         String currentBranch = readContentsAsString(HEAD_FILE);
         String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
         HashSet<String> allAncestors = getAllAncestors(currentCommitHash, GITLET_DIR);
@@ -711,10 +718,7 @@ public class Repository {
 
     public static void fetch(String remoteName, String remoteBranchName) {
         checkInit();
-        File remoteRepo = join(REMOTES_REPO_DIR, remoteName);
-        if (!remoteRepo.exists()) {
-            throw error("Remote directory not found.");
-        }
+        File remoteRepo = getRemoteDir(remoteName);
         File remoteBranchFile = join(remoteRepo, "ref", "heads", remoteBranchName);
         if (!remoteBranchFile.exists()) {
             throw error("That remote does not have that branch.");
