@@ -703,7 +703,7 @@ public class Repository {
         String currentBranch = readContentsAsString(HEAD_FILE);
         String currentCommitHash = readContentsAsString(join(HEADS_DIR, currentBranch));
         HashSet<String> allAncestors = getAllAncestors(currentCommitHash, GITLET_DIR);
-        File remoteBranchFile = join(remoteRepo, "ref", "heads", remoteBranchName);
+        File remoteBranchFile = join(remoteRepo, "refs", "heads", remoteBranchName);
         if (remoteBranchFile.exists()) {
             String remoteCommitHash = readContentsAsString(remoteBranchFile);
             if (!allAncestors.contains(remoteCommitHash)) {
@@ -719,7 +719,7 @@ public class Repository {
     public static void fetch(String remoteName, String remoteBranchName) {
         checkInit();
         File remoteRepo = getRemoteDir(remoteName);
-        File remoteBranchFile = join(remoteRepo, "ref", "heads", remoteBranchName);
+        File remoteBranchFile = join(remoteRepo, "refs", "heads", remoteBranchName);
         if (!remoteBranchFile.exists()) {
             throw error("That remote does not have that branch.");
         }
