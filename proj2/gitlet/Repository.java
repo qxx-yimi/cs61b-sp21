@@ -40,11 +40,6 @@ public class Repository {
     public static final File REMOTES_REPO_DIR = join(GITLET_DIR, "remotes");
 
     /**
-     * The remote branches directory.
-     */
-    public static final File REMOTES_HEADS_DIR = join(GITLET_DIR, "refs", "remotes");
-
-    /**
      * The objects directory for storing blobs.
      */
     public static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
@@ -79,7 +74,6 @@ public class Repository {
         GITLET_DIR.mkdir();
         HEADS_DIR.mkdirs();
         REMOTES_REPO_DIR.mkdir();
-        REMOTES_HEADS_DIR.mkdir();
         OBJECTS_DIR.mkdir();
         COMMITS_DIR.mkdir();
         STAGING_ADD_DIR.mkdirs();
@@ -651,7 +645,7 @@ public class Repository {
             throw error("A remote with that name already exists.");
         }
         writeContents(remoteFile, remotePath);
-        join(REMOTES_HEADS_DIR, remoteName).mkdir();
+        join(HEADS_DIR, remoteName).mkdir();
     }
 
     public static void rmRemote(String remoteName) {
@@ -661,7 +655,7 @@ public class Repository {
             throw error("A remote with that name does not exist.");
         }
         remoteFile.delete();
-        File remoteHeadsDir = join(REMOTES_HEADS_DIR, remoteName);
+        File remoteHeadsDir = join(HEADS_DIR, remoteName);
         for (String remoteBranch : plainFilenamesIn(remoteHeadsDir)) {
             join(remoteHeadsDir, remoteBranch).delete();
         }
@@ -728,7 +722,7 @@ public class Repository {
         copyAllCommits(getAllAncestors(remoteCommitHash, remoteRepo), remoteRepo, GITLET_DIR);
 
         // create a new branch point to head of fetched remote branch
-        writeContents(join(REMOTES_HEADS_DIR, remoteName, remoteBranchName), remoteCommitHash);
+        writeContents(join(HEADS_DIR, remoteName, remoteBranchName), remoteCommitHash);
     }
 
     public static void pull(String remoteName, String remoteBranchName) {
