@@ -20,10 +20,10 @@ public class Engine {
 
         Rectangle(Random rand) {
             // create a room
-            this.x = RandomUtils.uniform(rand, 1, WIDTH - 16);
-            this.y = RandomUtils.uniform(rand, 1, HEIGHT - 8);
-            this.width = RandomUtils.uniform(rand, 3, 16);
-            this.height = RandomUtils.uniform(rand, 3, 8);
+            this.x = RandomUtils.uniform(rand, 1, WIDTH - 7);
+            this.y = RandomUtils.uniform(rand, 1, HEIGHT - 7);
+            this.width = RandomUtils.uniform(rand, 3, 7);
+            this.height = RandomUtils.uniform(rand, 3, 7);
         }
 
         Rectangle(int x, int y, int width, int height) {
@@ -78,7 +78,7 @@ public class Engine {
     public static void main(String[] args) {
         Engine engine = new Engine();
         engine.ter.initialize(WIDTH, HEIGHT);
-        TETile[][] world = engine.interactWithInputString("n5197880843569031643s");
+        TETile[][] world = engine.interactWithInputString("n97039031643s");
         engine.ter.renderFrame(world);
     }
 
@@ -93,7 +93,7 @@ public class Engine {
     private void fillRoomAndHallWay(TETile[][] world, Random rand) {
         Rectangle prevRoom = new Rectangle(rand);
         fillRectangle(world, prevRoom);
-         int numRooms = RandomUtils.uniform(rand, 5, 15);
+         int numRooms = RandomUtils.uniform(rand, 10, 20);
         while (numRooms-- > 0) {
             Rectangle nextRoom = new Rectangle(rand);
             fillRectangle(world, nextRoom);
