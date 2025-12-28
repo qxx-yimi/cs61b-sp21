@@ -67,7 +67,7 @@ public class Engine {
         TETile[][] world = new TETile[WIDTH][HEIGHT];
         // fill world with nothing
         initializeWorld(world);
-        Random rand = new Random(Integer.parseInt(input.substring(1, input.length() - 1)));
+        Random rand = new Random(Long.parseLong(input.substring(1, input.length() - 1)));
         // fill world with Rooms and HallWays
         fillRoomAndHallWay(world, rand);
         // fill world with Walls
@@ -78,7 +78,7 @@ public class Engine {
     public static void main(String[] args) {
         Engine engine = new Engine();
         engine.ter.initialize(WIDTH, HEIGHT);
-        TETile[][] world = engine.interactWithInputString("N13212342S");
+        TETile[][] world = engine.interactWithInputString("n5197880843569031643s");
         engine.ter.renderFrame(world);
     }
 
