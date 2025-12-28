@@ -4,6 +4,9 @@ import byow.TileEngine.TERenderer;
 import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.PrintWriter;
 import java.util.Random;
 
 public class Engine {
@@ -11,6 +14,10 @@ public class Engine {
     /* Feel free to change the width and height. */
     public static final int WIDTH = 80;
     public static final int HEIGHT = 40;
+
+    private String worldState;
+    private int userX;
+    private int userY;
 
     private class Rectangle {
         int x;
@@ -64,22 +71,117 @@ public class Engine {
      * @return the 2D TETile[][] representing the state of the world
      */
     public TETile[][] interactWithInputString(String input) {
-        TETile[][] world = new TETile[WIDTH][HEIGHT];
-        // fill world with nothing
-        initializeWorld(world);
-        Random rand = new Random(Long.parseLong(input.substring(1, input.length() - 1)));
-        // fill world with Rooms and HallWays
-        fillRoomAndHallWay(world, rand);
-        // fill world with Walls
-        fillWalls(world);
+        input = input.toLowerCase();
+        TETile[][] world = null;
+        if (input.charAt(0) == 'l') {
+            // load the saved game
+            world = loadSavedWorld();
+            handleMove(world, input.substring(1));
+        } else {
+            long seed = getSeedFromInput(input);
+            world = buildWorld(seed);
+            this.worldState = "n" + seed + "s";
+            handleMove(world, input.substring(2 + String.valueOf(seed).length()));
+        }
         return world;
     }
 
     public static void main(String[] args) {
         Engine engine = new Engine();
         engine.ter.initialize(WIDTH, HEIGHT);
-        TETile[][] world = engine.interactWithInputString("n97039031643s");
+        TETile[][] world = engine.interactWithInputString("n9703swwwdddsssaaa:q");
+        // TETile[][] world = engine.interactWithInputString("ldddd");
         engine.ter.renderFrame(world);
+    }
+
+    private TETile[][] loadSavedWorld() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("world.txt"))) {
+            this.worldState = reader.readLine();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        long seed = getSeedFromInput(this.worldState);
+        TETile[][] world = buildWorld(seed);
+        handleMove(world, this.worldState.substring(2 + String.valueOf(seed).length()));
+        return world;
+    }
+
+    private void handleMove(TETile[][] world, String moves) {
+        for (char move : moves.toCharArray()) {
+            if (move == ':') {
+                saveWorld();
+                break;
+            }
+            int dx = 0, dy = 0;
+            if (move == 'w') {
+                dy = 1;
+            } else if (move == 'a') {
+                dx = -1;
+            } else if (move == 's') {
+                dy = -1;
+            } else if (move == 'd') {
+                dx = 1;
+            }
+            int newX = this.userX + dx;
+            int newY = this.userY + dy;
+            if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
+                continue;
+            }
+            if (world[newX][newY] != Tileset.FLOOR) {
+                continue;
+            }
+            world[this.userX][this.userY] = Tileset.FLOOR;
+            world[newX][newY] = Tileset.AVATAR;
+            this.userX = newX;
+            this.userY = newY;
+            this.worldState += move;
+        }
+    }
+
+    private void saveWorld() {
+        try (PrintWriter out = new PrintWriter("world.txt")) {
+            out.print(this.worldState);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private TETile[][] buildWorld(Long seed) {
+        TETile[][] world = new TETile[WIDTH][HEIGHT];
+        // fill world with nothing
+        initializeWorld(world);
+        Random rand = new Random(seed);
+        // fill world with Rooms and HallWays
+        fillRoomAndHallWay(world, rand);
+        // fill world with Walls
+        fillWalls(world);
+        // fill user position
+        fillUserPosition(world, rand);
+        return world;
+    }
+
+    private void fillUserPosition(TETile[][] world, Random rand) {
+        int x, y;
+        do {
+            x = RandomUtils.uniform(rand, WIDTH);
+            y = RandomUtils.uniform(rand, HEIGHT);
+        } while (world[x][y] != Tileset.FLOOR);
+        world[x][y] = Tileset.AVATAR;
+        this.userX = x;
+        this.userY = y;
+    }
+
+    private long getSeedFromInput(String input) {
+        StringBuilder seedStr = new StringBuilder();
+        for (int i = 1; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (Character.isDigit(c)) {
+                seedStr.append(c);
+            } else {
+                break;
+            }
+        }
+        return Long.parseLong(seedStr.toString());
     }
 
     private void initializeWorld(TETile[][] world) {
@@ -93,7 +195,7 @@ public class Engine {
     private void fillRoomAndHallWay(TETile[][] world, Random rand) {
         Rectangle prevRoom = new Rectangle(rand);
         fillRectangle(world, prevRoom);
-         int numRooms = RandomUtils.uniform(rand, 10, 20);
+        int numRooms = RandomUtils.uniform(rand, 10, 20);
         while (numRooms-- > 0) {
             Rectangle nextRoom = new Rectangle(rand);
             fillRectangle(world, nextRoom);
