@@ -6,6 +6,7 @@ import byow.TileEngine.Tileset;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Random;
 
@@ -72,7 +73,7 @@ public class Engine {
      */
     public TETile[][] interactWithInputString(String input) {
         input = input.toLowerCase();
-        TETile[][] world = null;
+        TETile[][] world;
         if (input.charAt(0) == 'l') {
             // load the saved game
             world = loadSavedWorld();
@@ -89,7 +90,7 @@ public class Engine {
     public static void main(String[] args) {
         Engine engine = new Engine();
         engine.ter.initialize(WIDTH, HEIGHT);
-        TETile[][] world = engine.interactWithInputString("n9703swwwdddsssaaa:q");
+        TETile[][] world = engine.interactWithInputString("n9127564470038628925sdaddaw");
         // TETile[][] world = engine.interactWithInputString("ldddd");
         engine.ter.renderFrame(world);
     }
@@ -97,12 +98,14 @@ public class Engine {
     private TETile[][] loadSavedWorld() {
         try (BufferedReader reader = new BufferedReader(new FileReader("world.txt"))) {
             this.worldState = reader.readLine();
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         long seed = getSeedFromInput(this.worldState);
         TETile[][] world = buildWorld(seed);
-        handleMove(world, this.worldState.substring(2 + String.valueOf(seed).length()));
+        String moves = this.worldState.substring(2 + String.valueOf(seed).length());
+        this.worldState = "n" + seed + "s";
+        handleMove(world, moves);
         return world;
     }
 
@@ -122,6 +125,7 @@ public class Engine {
             } else if (move == 'd') {
                 dx = 1;
             }
+            this.worldState += move;
             int newX = this.userX + dx;
             int newY = this.userY + dy;
             if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
@@ -134,14 +138,13 @@ public class Engine {
             world[newX][newY] = Tileset.AVATAR;
             this.userX = newX;
             this.userY = newY;
-            this.worldState += move;
         }
     }
 
     private void saveWorld() {
         try (PrintWriter out = new PrintWriter("world.txt")) {
             out.print(this.worldState);
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
